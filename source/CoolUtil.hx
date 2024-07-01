@@ -5,35 +5,103 @@ import openfl.utils.Assets;
 import lime.utils.Assets as LimeAssets;
 import lime.utils.AssetLibrary;
 import lime.utils.AssetManifest;
+import flixel.system.FlxSound;
 import openfl.utils.Assets;
 
 using StringTools;
 
 class CoolUtil
 {
-	// [Difficulty name, Chart file suffix]
-	public static var difficultyStuff:Array<Dynamic> = [
-		['Easy', '-easy'],
-		['Normal', ''],
-		['Hard', '-hard']
+	public static var defaultDifficulties:Array<String> = [
+		'Normal'
 	];
+	public static var defaultDifficulty:String = 'Normal'; //The chart that has no suffix and starting difficulty on Freeplay/Story Mode
+
+	public static var difficulties:Array<String> = [];
+
+	inline public static function quantize(f:Float, snap:Float){
+		// changed so this actually works lol
+		var m:Float = Math.fround(f * snap);
+		return (m / snap);
+	}
+
+	inline public static function snap(f:Float, snap:Float)
+	{
+		var m:Float = Math.fround(f / snap);
+		return (m * snap);
+	}
+
+
+    // honestly this should be part of the chart file but whatever
+	public static function getSongArtist(song:String) //song should be in uppercase, like the songName var
+		{
+			var artist:String = 'Kawai Sprite';
+
+			switch (song)
+			{
+				case "Mindless":
+					artist = 'Sevc_Ext_277';
+
+				case "Blessed by Swords":
+					artist = 'Lettush';
+
+				case "Brotherly Love":
+					artist = 'Kylevi';
+
+				case "Suffering Siblings":
+					artist = 'Awe (ft. Saster)';
+
+				case "Come Along With Me":
+					artist = 'Awe';
+
+				case "Child's Play":
+					artist = 'Yoosuf Meekail';
+
+				case "My Amazing World":
+					artist = 'Corn';
+
+				case "Retcon":
+					artist = 'Rareblin (ft. Pattydecaffy)';
+
+				case "Forgotten World":
+					artist = 'Awe';
+
+				case "No Hero Remix":
+					artist = 'Rundown';
+			}
+
+			return artist;
+		}
+	
+	public static function getDifficultyFilePath(num:Null<Int> = null)
+	{
+		if(num == null) num = PlayState.storyDifficulty;
+
+		var fileSuffix:String = difficulties[num];
+		if(fileSuffix != defaultDifficulty)
+		{
+			fileSuffix = '-' + fileSuffix;
+		}
+		else
+		{
+			fileSuffix = '';
+		}
+		return Paths.formatToSongPath(fileSuffix);
+	}
 
 	public static function difficultyString():String
 	{
-		return difficultyStuff[PlayState.storyDifficulty][0].toUpperCase();
+		return difficulties[PlayState.storyDifficulty].toUpperCase();
 	}
 
-	public static function boundTo(value:Float, min:Float, max:Float):Float {
-		var newValue:Float = value;
-		if(newValue < min) newValue = min;
-		else if(newValue > max) newValue = max;
-		return newValue;
+	inline public static function boundTo(value:Float, min:Float, max:Float):Float {
+		return Math.max(min, Math.min(max, value));
 	}
 
 	public static function coolTextFile(path:String):Array<String>
 	{
 		var daList:Array<String> = [];
-		if(Assets.exists(path)) daList = Assets.getText(path).trim().split('\n');
+		if(Assets.exists(path)) daList = Assets.getText(path).trim().split('\n'); // po josé
 
 		for (i in 0...daList.length)
 		{
@@ -41,6 +109,99 @@ class CoolUtil
 		}
 
 		return daList;
+	}
+
+	public static function formatMemory(num:UInt):String
+		{
+			var size:Float = num;
+			var data = 0;
+			var dataTexts = ["B", "KB", "MB", "GB"];
+			while (size > 1024 && data < dataTexts.length - 1)
+			{
+				data++;
+				size = size / 1024;
+			}
+	
+			size = Math.round(size * 100) / 100;
+			var formatSize:String = formatAccuracy(size);
+			return '${formatSize} ${dataTexts[data]}';
+		}
+	
+		public static function formatAccuracy(value:Float)
+		{
+			var conversion:Map<String, String> = [
+				'0' => '0.00',
+				'0.0' => '0.00',
+				'0.00' => '0.00',
+				'00' => '00.00',
+				'00.0' => '00.00',
+				'00.00' => '00.00', // gotta do these as well because lazy
+				'000' => '000.00'
+			]; // these are to ensure you're getting the right values, instead of using complex if statements depending on string length
+	
+			var stringVal:String = Std.string(value);
+			var converVal:String = '';
+			for (i in 0...stringVal.length)
+			{
+				if (stringVal.charAt(i) == '.')
+					converVal += '.';
+				else
+					converVal += '0';
+			}
+	
+			var wantedConversion:String = conversion.get(converVal);
+			var convertedValue:String = '';
+	
+			for (i in 0...wantedConversion.length)
+			{
+				if (stringVal.charAt(i) == '')
+					convertedValue += wantedConversion.charAt(i);
+				else
+					convertedValue += stringVal.charAt(i);
+			}
+	
+			if (convertedValue.length == 0)
+				return '$value';
+	
+			return convertedValue;
+		}
+
+	public static function listFromString(string:String):Array<String>
+	{
+		var daList:Array<String> = [];
+		daList = string.trim().split('\n');
+
+		for (i in 0...daList.length)
+		{
+			daList[i] = daList[i].trim();
+		}
+
+		return daList;
+	}
+	public static function dominantColor(sprite:flixel.FlxSprite):Int{
+		var countByColor:Map<Int, Int> = [];
+		for(col in 0...sprite.frameWidth){
+			for(row in 0...sprite.frameHeight){
+			  var colorOfThisPixel:Int = sprite.pixels.getPixel32(col, row);
+			  if(colorOfThisPixel != 0){
+				  if(countByColor.exists(colorOfThisPixel)){
+				    countByColor[colorOfThisPixel] =  countByColor[colorOfThisPixel] + 1;
+				  }else if(countByColor[colorOfThisPixel] != 13520687 - (2*13520687)){
+					 countByColor[colorOfThisPixel] = 1;
+				  }
+			  }
+			}
+		 }
+		var maxCount = 0;
+		var maxKey:Int = 0;//after the loop this will store the max color
+		countByColor[flixel.util.FlxColor.BLACK] = 0;
+			for(key in countByColor.keys()){
+			if(countByColor[key] >= maxCount){
+				maxCount = countByColor[key];
+				maxKey = key;
+			}
+		}
+		return maxKey;
 	}
 
 	public static function numberArray(max:Int, ?min = 0):Array<Int>
@@ -55,9 +216,11 @@ class CoolUtil
 
 	//uhhhh does this even work at all? i'm starting to doubt
 	public static function precacheSound(sound:String, ?library:String = null):Void {
-		if(!Assets.cache.hasSound(Paths.sound(sound, library))) {
-			FlxG.sound.cache(Paths.sound(sound, library));
-		}
+		Paths.sound(sound, library);
+	}
+
+	public static function precacheMusic(sound:String, ?library:String = null):Void {
+		Paths.music(sound, library);
 	}
 
 	public static function browserLoad(site:String) {

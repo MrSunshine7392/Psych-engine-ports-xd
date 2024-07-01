@@ -9,9 +9,9 @@ import sys.io.File;
 
 class Asset2File
 {
-	static var path:String = lime.system.System.applicationStorageDirectory;
+	public static var path:String = lime.system.System.applicationStorageDirectory;
 
-	public static function getPath(id:String, ?ext:String = "")
+	public static function getPath(?id:String = "", ?ext:String = "")
 	{
 		#if android
 		var file = Assets.getBytes(id);
@@ -20,7 +20,6 @@ class Asset2File
 
 		if (FileSystem.exists(path + md5 + ext))
 			return path + md5 + ext;
-
 
 		File.saveBytes(path + md5 + ext, file);
 
